@@ -35,6 +35,10 @@
           font-family: Roboto;
       }
 
+      .md a {
+          font-family: Roboto;
+      }
+
       a:hover {
           color: #FFF;
       }

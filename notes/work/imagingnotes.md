@@ -1,4 +1,9 @@
 <meta charset="utf-8">
+<meta name="theme-color" content="#141518" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/solid.css" integrity="sha384-wnAC7ln+XN0UKdcPvJvtqIH3jOjs9pnKnq9qX68ImXvOGz2JuFoEiCjT8jyZQX2z" crossorigin="anonymous">
+<link rel="icon" href="imaging.ico"/>
 <style>
       body {
           position: relative;
@@ -374,12 +379,66 @@ Setup
 
 Setting up DEP is sometimes easy and other times an absolute nightmare. JAMF's implementation of the MDM side of DEP is definitely buggy and has its issues, so you will need to probably fight through them.
 
-To go from nothing to a work PreStage Enrollment do the following:
+To go from nothing to a working PreStage Enrollment do the following:
 1. Start by going to JSS > Computers > PreStage Enrollments and create a new PreStage.
 2. Give it a reasonable name (you will need it later)
-3. Make sure the Device Enrollment Program Instance is set to Amherst Mobile Devices
+3. Fill out the settings as they are listed below.
 
+**General**
 
+~~~~~~~~~~~~~~~~~ text
+Automatically assign new devices: No (unless this is actually needed)
+DEP Instance: Amherst Mobile Devices
+Support Phone #: Anything
+Department: Anything
+Make MDM Profile Mandatory: No
+Allow MDM Profile Removal: Yes
+Setup Assistant: All Selected
+
+~~~~~~~~~~~~~~~~~
+
+**Account Settings**
+
+~~~~~~~~~~~~~~~~~ 
+Account Username: tech
+Create an additional admin account: No
+Local User Account Type: Skip Account Creation
+~~~~~~~~~~~~~~~~~ 
+
+**User and Location**
+
+~~~~~~~~~~~~~~~~~ text
+Department: Whatever the dept. is
+Building: Whatever the building is
+~~~~~~~~~~~~~~~~~ 
+
+!!! ERROR Directory Settings
+    **DO NOT** setup the Directory settings in the PreStage. Doing so will bind the device prior to being named correctly, meaning they are going to just be garbage in AD. AD Binding is done later through a policy.
+
+### Adding Devices to PreStage Enrollment Scope
+
+Adding devices to the scope is the point where it gets really buggy. Adding one or two devices seems to always work fine, but adding a ton (by hitting the checkbox header) usually fails. 
+
+Devices can be added semi-easily by just going to the PreStage Enrollment you made > Scope > Edit, then search by Name, or Serial Number. Adding one or two or manually adding a bunch is relatively safe, but hitting the checkbox to select all from the current view usually breaks after it is saved. I'd recommend contacting JAMF about this, it seems like a really stupid bug that shouldn't happen.
+
+Try one of the following to get it to work:
+1. Sometimes, making the view count (down by the page number) say All makes the checkbox header work.
+2. Refresh the DEP instance, by hitting refresh in the bottom bar
+3. Re-add the DEP token by doing the following:
+    1. Grab a new public key from JSS by going to Settings > Device Enrollment Program > Public Key (top corner)
+    2. Log into [Apple School](school.apple.com), go to MDM Server > jss.amherstk12.org > Upload Key and upload the key you just downloaded 
+    3. Hit Get Token to download another token but this time from Apple School
+    3. Go back into the JSS DEP Settings and click into Amherst Mobile Devices instance. Edit it and upload the server token file from Apple School
+4. Try again later. This has worked once or twice.
+
+!!! tip DEP Connection Errors in JSS
+    If JSS keeps saying "Unable to contact https://mdmenrollment.apple.com" you might be able to just ignore that. If it refuses to update, try the DEP Token instructions above. If it still is there, call JAMF, I have no idea why that doesn't go away
+
+You will know if a device is correctly setup for DEP if it shows as Assigned in [PreStage Enrollment Name] > Scope.
+
+On-Site DEP Configuration
+-----------
+DEP does not play a part in the laptop imaging process until we get to Setup Assistant. DEP configuration takes hold here after the Network is joined. A Configuration Profile screen with a cog will show up. Click continue on it and watch for if the spinning wheel skips. If it does, then you know it is working. If it keeps spinning forever, then something is wrong with the laptop/DEP Prestage. I'd recommend re-imaging the laptop if this happens, or if it continues after a re-image, find what is broken with your PreStage Enrollment.
 
 Naming
 =================

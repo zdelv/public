@@ -30,6 +30,10 @@
           color: rgb(221, 221, 221);
       }
 
+      .md .longTOC a {
+          font-family: Roboto;
+      }
+
       a:hover {
           color: #FFF;
       }

@@ -2,8 +2,7 @@
 <meta name="theme-color" content="#141518" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-capable" content="yes">
-
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/solid.css" integrity="sha384-wnAC7ln+XN0UKdcPvJvtqIH3jOjs9pnKnq9qX68ImXvOGz2JuFoEiCjT8jyZQX2z" crossorigin="anonymous">
+<link rel="icon" href="https://zdelv.github.io/public/notes/work/imaging.ico">
 <link rel="icon" href="imaging.ico"/>
 <style>
       body {
@@ -360,7 +359,9 @@ The negatives of DEP:
 + Overly dependent on external servers (DEP is 100% external, minus the setup to JSS)
 + JSS seems to be lacking some of the abilities that DEP has (that being computer naming prior to enrollment)
 
-DEP works through [Apple School](school.apple.com) (previously known as dep.apple.com) where a device is enrolled via serial number. For iPads this gives us both Supervision and Management over the device. For MacBooks, all we get is just a list of the devices we own, and a tie into the Setup Assistant. This list of devices is then hooked up to our local JSS server via a token, which allows JSS to pull all of the devices into a 'PreStage Enrollment'. 
+DEP works through [Apple School](https://school.apple.com) (previously known as dep.apple.com) where a device is enrolled via serial number. For iPads this gives us both Supervision and Management over the device. For MacBooks, all we get is just a list of the devices we own, and a tie into the Setup Assistant. This list of devices is then hooked up to our local JSS server via a token, which allows JSS to pull all of the devices into a 'PreStage Enrollment'. 
+
+### PreStage Enrollment
 
 **PreStage Enrollments** are what allow us to select specific devices and place them into a group to be enrolled after being picked up by DEP during Setup. There are also a few other settings that are modifiable, like AD Binding, Local Users, Purchasing Info, and a few others. No option allows for an arbitrary script to be run after it finishes though, leaving us with a bit of a problem when it comes to automating the entire imaging process. To put it simply, PreStage Enrollments are just JAMF's implementation of the client side part of DEP. Nothing special exists with it. If Apple decides to give or remove the ability to do something then JAMF is at their will. Because of the lack of scripting and command input, we have to use what is called (or I call) Policy Cascading. See Naming for more info on this.
 
@@ -435,7 +436,7 @@ Try one of the following to get it to work:
 2. Refresh the DEP instance, by hitting refresh in the bottom bar
 3. Re-add the DEP token by doing the following:
     1. Grab a new public key from JSS by going to Settings > Device Enrollment Program > Public Key (top corner)
-    2. Log into [Apple School](school.apple.com), go to MDM Server > jss.amherstk12.org > Upload Key and upload the key you just downloaded 
+    2. Log into [Apple School](https://school.apple.com), go to MDM Server > jss.amherstk12.org > Upload Key and upload the key you just downloaded 
     3. Hit Get Token to download another token but this time from Apple School
     3. Go back into the JSS DEP Settings and click into Amherst Mobile Devices instance. Edit it and upload the server token file from Apple School
 4. Try again later. This has worked once or twice.
@@ -443,11 +444,24 @@ Try one of the following to get it to work:
 !!! tip DEP Connection Errors in JSS
     If JSS keeps saying "Unable to contact https://mdmenrollment.apple.com" you might be able to just ignore that. If it refuses to update, try the DEP Token instructions above. If it still is there, call JAMF, I have no idea why that doesn't go away
 
+!!! tip Device fails to Assign to PreStage
+    If a device continues to fail to assign to a PreStage, try unassigning the device from [Apple School](https://school.apple.com) and re-assign it:
+        1. Log into [Apple School](https://school.apple.com) using at least a Site Manager account. Go to Device Assignments
+        2. Enter the serial number for the device into the 1st field then select unassign devices in the drop down box in the 2nd field.
+        3. In JSS go to Settings > Device Enrollment Program > [Name of Program] > Devices and hit refresh.
+        4. Double check that the Computer does not exist in the list when you search by S/N
+        5. Go back into [Apple School](https://school.apple.com) and make sure the same S/N is in the 1st field, then select Assign to Server in the dropdown. Select https://jss.amherstk12.org for the server.
+        6. In JSS, continually refresh until you see the device again. Try reassigning it, it should work now.
+
 You will know if a device is correctly setup for DEP if it shows as Assigned in [PreStage Enrollment Name] > Scope.
 
 On-Site DEP Configuration
 -----------
-DEP does not play a part in the laptop imaging process until we get to Setup Assistant. DEP configuration takes hold here after the Network is joined. A Configuration Profile screen with a cog will show up. Click continue on it and watch for if the spinning wheel skips. If it does, then you know it is working. If it keeps spinning forever, then something is wrong with the laptop/DEP Prestage. I'd recommend re-imaging the laptop if this happens, or if it continues after a re-image, find what is broken with your PreStage Enrollment.
+DEP does not play a part in the laptop imaging process until we get to Setup Assistant. DEP configuration takes hold here after the Network is joined. A Configuration Profile screen with a cog will show up. Click continue on it and watch for if the spinning wheel skips. If it does, then you know it is working. If it keeps spinning forever, then something is wrong with the laptop/DEP PreStage. I'd recommend re-imaging the laptop if this happens, or if it continues after a re-image, find what is broken with your PreStage Enrollment. Not much is configurable with DEP at the laptop, as almost all of it happens in the backend.
+
+!!! tip No Configuration Profile Pane (DEP) during Setup Assistant
+    + If you get to after the Network setup and there isn't a Configuration Profile (DEP) pane and just the Data & Privacy pane, go all the way back to the beginning of Setup Assistant and try again, including Network again (act as if you've never gone through Setup Assistant at this point). This most of the time will force the laptop to check for DEP again, and assuming it is actually scoped to the PreStage Enrollment, it will show the Configuration Profile (DEP) pane. 
+    + If you keep trying and still can not see the Configuration Profiles pane, you will have to reimage the device. See Quick Imaging for more info on doing this.
 
 Naming
 =================
@@ -469,5 +483,68 @@ Policies
 
 Setup
 ------------
+
+Misc
+=================
+
+Just various things that I thought were important to know but had no place to go elsewhere in the documentation.
+
+Quick Imaging
+------------
+If you have spent any time actually imaging theses laptops using this method, you will know that the bulk of the time spent is actually the absurdly long macOS install process. To make the process faster, we can exploit a utility called [AutoDMG](https://github.com/MagerValp/AutoDMG/releases), which will complete the installation for us once and install it into a DMG file (aptly named). Using the DMG, we can restore the computer with Disk Utility (CLI version) and bypass the entire macOS install process. This procedure is extremely helpful for devices that make it to the Setup Assistant but end up failing for various reasons, and need reimaging.
+
+!!! WARNING APFS ONLY
+    The device **MUST** have already been imaged from < 10.13 to > 10.13 with the macOS Installer. This is due to firmware limitations, as 10.13 added support for APFS.
+
+### AutoDMG Setup
+
+On a Mac with the newest versions of macOS, macOS installer and [AutoDMG](https://github.com/MagerValp/AutoDMG/releases) installed:
+
+1. Open [AutoDMG](https://github.com/MagerValp/AutoDMG/releases) then drag your macOS installer onto the dialog.
+2. Click Apply Updates, and Download. This will pull and misc updates for macOS required apps (iTunes and the likes)
+3. In the additional software field, unless you have a package you need to install on the device, leave this blank. It is directly against the philosophy of our imaging process, so try not to use it.
+4. Click build in the bottom after the Downloads are done. Chose a location to put it, then leave you laptop alone for awhile. The process can take up to 2 hours.
+5. After it is complete, I recommend making sure it is named how you want it (preferably OS version, date and any special things about it).
+
+### Flash Drive Setup
+
+To create a flash drive that can be used to quickly image devices you must do all of the steps needed to [normally create a USB imaging flash drive](#toc2.1), but at step 8 continue from here (and do the external accounts fix).
+
+1. Create a folder named Configurations on the root (use / not /var/root) of the drive. Copy the AutoDMG DMG you made earlier into this folder
+2. On the home folder for root (/var/root) create a file named depimage.sh or quickimage.sh, whatever you want. 
+3. In this file (using Text Editor, vim, nano, or whatever you have) paste the following:
+
+~~~~~~~~~~~~~ bash
+# Check for presence of Core Storage logical volume, and remove if found.
+if [[ ${csvolumes} != "No CoreStorage logical volume groups found" ]]; then
+    echo "Core storage volume found."
+    diskutil cs deleteVolume disk1
+fi
+
+# Restore AFPS Image to internal container from /Configurations
+asr restore -s /Configurations/*.dmg -t /dev/disk0s2 -erase -noverify -noprompt
+~~~~~~~~~~~~~
+    This script is configured specifically for the scenario of a USB booted MacBook with one internal drive. I **HIGHLY** recommend testing this in an environment that is okay with being erased accidentally. There is a very good chance that this script could hit the wrong device if used wrong.
+
+4. Enter the following command to allow the file to be executable:
+
+~~~~~~~~~~~~~ 
+# chmod +x ./[Name of File]
+~~~~~~~~~~~~~
+
+5. I recommend setting terminal to automatically open on login.
+
+### On-Site Use
+
+Once on site and you happen upon a laptop that for some reason has failed to correctly DEP or now has the wrong name or some other reason to where it may need to be imaged, boot the laptop to the new USB "Fixer" Flash Drive.
+
+If you followed the setup from above, the following steps should be very simple:
+
+1. Login with root and no password
+2. If it is not set to automatically open, open terminal.
+3. Type `./depimage.sh` (or whatever you called the script) and hit enter. The device should begin imaging. The `./` is important, as that tells bash to check your current directory. It will wipe the drive then begin restoring.
+4. After it is done (it will be done soon after it starts Inverting the volume), reboot to the main SSD in the laptop.
+5. Continue on through Setup Assistant as you did before
+
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js"></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" type="text/javascript"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

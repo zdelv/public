@@ -457,7 +457,7 @@ You will know if a device is correctly setup for DEP if it shows as Assigned in 
 
 On-Site DEP Configuration
 -----------
-DEP does not play a part in the laptop imaging process until we get to Setup Assistant. DEP configuration takes hold here after the Network is joined. A Configuration Profile screen with a cog will show up. Click continue on it and watch for if the spinning wheel skips. If it does, then you know it is working. If it keeps spinning forever, then something is wrong with the laptop/DEP PreStage. I'd recommend re-imaging the laptop if this happens, or if it continues after a re-image, find what is broken with your PreStage Enrollment. Not much is configurable with DEP at the laptop, as almost all of it happens in the backend.
+DEP does not play a part in the laptop imaging process until we get to Setup Assistant. DEP configuration takes hold here after the Network is joined. A Configuration Profile screen with a cog will show up. Click continue on it and watch for if the spinning wheel skips. If it does, then you know it is working. If it keeps spinning forever, then something is wrong with the laptop/DEP PreStage. I'd recommend re-imaging the laptop if this happens, or if it continues after a re-image, find what is broken with your PreStage Enrollment. Not much is configurable with DEP at the laptop, as almost all of it happens in the backend. It basically either works or it doesn't, really nothing else can happen.
 
 !!! tip No Configuration Profile Pane (DEP) during Setup Assistant
     + If you get to after the Network setup and there isn't a Configuration Profile (DEP) pane and just the Data & Privacy pane, go all the way back to the beginning of Setup Assistant and try again, including Network again (act as if you've never gone through Setup Assistant at this point). This most of the time will force the laptop to check for DEP again, and assuming it is actually scoped to the PreStage Enrollment, it will show the Configuration Profile (DEP) pane. 
@@ -465,10 +465,27 @@ DEP does not play a part in the laptop imaging process until we get to Setup Ass
 
 Naming
 =================
-For AD Binding to be organized, the name must be sanitized _prior_ to binding. This means that the most important step out of all of this is the naming of the laptop, and because of this, the bulk of the customized scripting was spent there.
+
+For AD Binding to be organized, the name must be sanitized _prior_ to binding. This means that the most important step of this process is the naming of the laptop, and because of this, the bulk of the customized scripting was spent here.
 
 Scripts
 ------------
+
+All of the scripts that are necessary can be found in JSS under Settings > Computer Management > Scripts. The two scripts that handle the naming are 'Change Computer Name Dialog' and 'Change Computer Name Dialog Lab'. The non-lab script is built for any device not used by multiple people (ie Teachers or just one of devices). This means that the name is **NOT** sanitized (besides length) and is also the least configurable.
+
+The lab version of the script is built for any device used by many people (through AD logins). This specifically means that through some configuration on the policy, the script can ask for the building name, cart number, and computer number all at the device. The building name can even be specified prior to imaging, in the policy, as most likely every device imaged is going to be at the same building. Cart Number and Computer Number can have bounds for a maximum number, also set in the policy.
+
+The lab version of the script has the following arguments:
+
+~~~~~~~~~~~~~~~ text
+Building Name: Short Name of the building. Example: Steele, AJH, Nord. Defaults to asking at the device
+# Of Carts: Maximum number of carts. Provides sanitiation at the device. Defaults to 100
+# Of Computers: Maximum number of computers per cart. Provides sanitiation at the device. Defaults to 100
+~~~~~~~~~~~~~~~
+
+The name dialog is presented via embedded AppleScript inside of a Bash script. The scripts have been formatted such that the AppleScript is as readable as possible, and also easily configurable, for whatever future changes may be needed. Any command that has `osascript -e` in it is executing AppleScript. Currently only for the lab verison, there is also a dialog after the name is entered for the user to confirm that the name is correct, and if it is incorrect, it allows the user to easily re-do the name prior to saving. This should prevent fat-fingering the name.
+
+
 
 
 AD Binding
@@ -546,5 +563,86 @@ If you followed the setup from above, the following steps should be very simple:
 4. After it is done (it will be done soon after it starts Inverting the volume), reboot to the main SSD in the laptop.
 5. Continue on through Setup Assistant as you did before
 
+
+Policy Cascading
+------------
+
+To get around the issue of DEP/PreStage not having any ability to execute policies, we can use what I call Policy Cascading. This process is pretty self explanatory just based on the name, but as simple description of it is having policies and smart groups control the order of policy execution.
+
+The general process behind a policy cascade is the following:
+
+1. Computer is enrolled and enters the beginning smart group
+2. The policy to begin the cascade is run on login or enrollment.
+    + This policy simply runs `jamf recon` and `jamf policy` over the number of stages there are (ie 3 stages, 3 recon/policies).
+3. The computer is recon'd by the cascade, then the first policy is executed.
+    + This policy ends with an external file change that an extension attribute is continually checking on recon.
+4. The computer is recon'd again by the cascade, with the next policy in order executing afterwards.
+5. Steps 3-4 are executed as many times as there are stages. This is determined by the length of the policy cascade.
+6. The policy in the last stage changes the external file to reflect the important policies being complete. With this, the laptop enters the final smart group containing all of the Configuration Profiles and unimportant policies.
+
+**********************************************************************************************************************
+*                               Change Ext. Attr.   Change Ext. Attr.
+*       Start Policy Cascade       Step                Step            If Current Stage == # of Stages
+*                |                  |                   |                     |
+*  .--------.    v      .--------.  v       .--------.  v       .--------.    v      .--------.        .--------. 
+* | Enrolled +-------->|  Policy  +------->|  Policy  +------->|  Policy  +-------->|   Misc   +----->| Profiles |
+*  '--------'           '--------'     ^    '--------'     ^    '---+----'          | Policies |       '--------' 
+*                                      |          ^        |        | Repeat till    '--------'
+*                                    Recon        |      Recon      | Policy Cascade
+*                                                  '---------------'  ends
+*                                                                     (ie # of stages)
+*   |____________________________| |_________________| |__________________|     |_______________________________|
+*                |                         |                   |                               | 
+*         First Smart Group        Second Smart Group    Nth Smart Group                Final Smart Group
+*
+**********************************************************************************************************************
+
+### Smart Groups
+
+One of the most important parts of this process is having the Smart Groups correctly setup. This means that they should never allow a computer to go out of order, leave early, or enter the incorrect group. To group the computers correctly, we have two different major differentiators, the DEP Enrollment Scope and the Imaging Step Extension Attribute. The first being a imaging process differentiator and the second being a step seperator. For more information on how the Imaging Step Extension Attribute works, see the section below.
+
+The following below is an example of what the criteria of a few cascaded smart groups would look like:
+
+**Naming Smart Group**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: None
+~~~~~~~~~~~~~~~~
+
+**AD Binding Smart Group**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: 1 
+~~~~~~~~~~~~~~~~
+
+**Important Policies Smart Group**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: 2 
+~~~~~~~~~~~~~~~~
+
+**Final Smart Group**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: Complete 
+~~~~~~~~~~~~~~~~
+
+With this setup, it should be nearly impossible for a computer to exist in more than one of these smart groups. It also means that if the policies are setup correctly, they should also only go through the smart groups in order, starting with Imaging Step: None.
+
+!!! Warning Smart Group Responsibility
+    The only smart groups that should be doing more than one policy are the first and last groups. The first group runs the policy cascade and the naming policies and the last group pushes any unimportant policies onto the laptop and also the profiles. Every other smart group relies on policy ordering, and as such, can not do more than one job. Essentially since JSS has no way of ordering policies, we can not put the computer naming and AD binding policies in the same smart group. This could cause the AD binding policy to run prior to the naming policy, which is exactly the opposite of what we want.
+
+### Imaging Step Extension Attribute
+
+The Imaging Step Extension Attribute is a custom inventory record created to keep track of where a computer is during its imaging process. Originally I had used names to differentiate between steps, but after realizing that JSS loves to randomly drop computer names and revert to old names, I decided to roll my own scheme. 
+
+The extension attribute reads from a file found in the organizational directory (`/usr/local/amh`) named imagingstep. This file is created on recon if it is not found. The script 'Iterate Imaging Step' is used at the end of policies that require the computer to leave one group and enter another. This script will take what is currently in the imagingstep file and iterate it by one. If the file is empty, it writes the number one. The final policy will use 'Change Imaging Step to Complete' to change the imagingstep file to read 'Complete'. This will put the computer into the final smart group and ensure it does not go any further.
+
+Known Issues
+------------
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js"></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" type="text/javascript"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

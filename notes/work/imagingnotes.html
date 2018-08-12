@@ -468,6 +468,8 @@ Naming
 
 For AD Binding to be organized, the name must be sanitized _prior_ to binding. This means that the most important step of this process is the naming of the laptop, and because of this, the bulk of the customized scripting was spent here.
 
+Device names **MUST** be less than 15 characters in total length for AD binding and also are automatically changed to all lowercase during binding.
+
 Scripts
 ------------
 
@@ -486,20 +488,23 @@ Building Name: Short Name of the building. Example: Steele, AJH, Nord. Defaults 
 The name dialog is presented via embedded AppleScript inside of a Bash script. The scripts have been formatted such that the AppleScript is as readable as possible, and also easily configurable, for whatever future changes may be needed. Any command that has `osascript -e` in it is executing AppleScript. Currently only for the lab verison, there is also a dialog after the name is entered for the user to confirm that the name is correct, and if it is incorrect, it allows the user to easily re-do the name prior to saving. This should prevent fat-fingering the name.
 
 
-
-
 AD Binding
 =================
 
-Policies
-------------
+AD Binding is currently the 2nd to last step in the process. It _always_ happens after the naming happens. This ensures the name is correct prior to being bound, as without it, there would be a bunch of garbage in AD. A computer is bound using the JSS built-in directly binding policy. In JSS, we currently have two AD Binding "profiles", one with and one without AMH_Staff_G as local Administrators. Which one is applied depends on the use case.
+
+Directory Binding status can be found in System Preferences > Users & Groups > Login Options. If the computer is bound, a green circle with AMHERSTK12 will be there, and if not, it will display Network Server with a Join button.
+
+Device names **MUST** be less than 15 characters in total length and also are automatically changed to all lowercase during binding.
 
 
 Policies
 =================
 
-Setup
-------------
+Any misc policies that need to be run can be done in the last smart group. **DO NOT** put them in any other smart group other than the last, as you can not be certain if they will be done in order. (basically you can't be certain if the policy will run before or after the policy that changes the imaging step, and therefore the smart group)
+
+!!! tip Categories
+    Please try to use categories when making imaging policies or profiles. They are so extremely nice for ordering things.
 
 Misc
 =================
@@ -642,7 +647,99 @@ The Imaging Step Extension Attribute is a custom inventory record created to kee
 
 The extension attribute reads from a file found in the organizational directory (`/usr/local/amh`) named imagingstep. This file is created on recon if it is not found. The script 'Iterate Imaging Step' is used at the end of policies that require the computer to leave one group and enter another. This script will take what is currently in the imagingstep file and iterate it by one. If the file is empty, it writes the number one. The final policy will use 'Change Imaging Step to Complete' to change the imagingstep file to read 'Complete'. This will put the computer into the final smart group and ensure it does not go any further.
 
-Known Issues
+Full Example
+=================
+
+In this section, I will use the **AJH MacBook Airs** as an example of the imaging process, and go through the full configuration.
+
+PreStage Enrollment
 ------------
+
+**General**
+
+~~~~~~~~~~~~~~~~~ text
+Name: AJH MacBook Airs
+Automatically assign new devices: No (unless this is actually needed)
+DEP Instance: Amherst Mobile Devices
+Support Phone #: Tech #
+Department: Tech 
+Make MDM Profile Mandatory: No
+Allow MDM Profile Removal: Yes
+Setup Assistant: All Selected
+
+~~~~~~~~~~~~~~~~~
+
+**Account Settings**
+
+~~~~~~~~~~~~~~~~~ 
+Account Username: tech
+Create an additional admin account: No
+Local User Account Type: Skip Account Creation
+~~~~~~~~~~~~~~~~~ 
+
+**User and Location**
+
+~~~~~~~~~~~~~~~~~ text
+Department: Tech
+Building: AJH
+~~~~~~~~~~~~~~~~~ 
+
+Computer Smart Groups
+------------
+
+**AJH - Naming Imaging (i.1)**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: None
+~~~~~~~~~~~~~~~~
+
+**AJH - AD Binding (i.2)**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: 1 
+~~~~~~~~~~~~~~~~
+
+**AJH - MacBook Airs (i.3)**
+
+~~~~~~~~~~~~~~~~ text
+DEP PreStage Enrollment: AJH MacBook Airs
+Imaging Step: Complete 
+~~~~~~~~~~~~~~~~
+
+Naming Policy
+------------
+
+Using the Lab version of the dialog
+
+~~~~~~~~~~~~~~~ text
+Building Name: AJH
+Max # Of Carts: 13
+Max # Of Computers: 30
+~~~~~~~~~~~~~~~
+
+The naming policy is scoped to the **AJH - Naming Imaging (i.1)** smart group.
+
+The naming policy finishes with 'Iterate Imaging Step' (imagingstep would be 1 after)
+
+AD Binding
+------------
+
+Using the AD Binding w/ Teachers 'AD profile'
+
+The AD binding policy is scoped to the **AJH - AD Binding (i.2)** smart group.
+
+The AD binding policy finishes with 'Change Imaging Step to Complete' (imagingstep would be 'Complete' after)
+
+Finishing Policies
+------------
+
+Install Google Chrome is the only policy set to run after everything is complete.
+
+All finishing policies are scoped to the **AJH - MacBook Airs (i.3)** smart group. 
+
+Known Issues
+=================
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js"></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" type="text/javascript"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

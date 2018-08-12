@@ -1,9 +1,9 @@
 <meta charset="utf-8">
 <meta name="theme-color" content="#141518" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="icon" href="https://zdelv.github.io/public/notes/work/imaging.ico">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="icon" href="imaging.ico"/>
+<link rel="icon" href="https://zdelv.github.io/public/notes/work/imaging.ico">
 <style>
       body {
           position: relative;
@@ -56,8 +56,16 @@
           color: #fff;
       }
 
+      .md .nonumberh3 {
+          font-family: Roboto;
+          font-size: 15px;
+          margin-top: 20px;
+          margin-bottom: -3px;
+          color: #fff;
+      }
+
       .md h3 {
-          font-size: 15x;
+          font-size: 15px;
           margin-top: 20px;
           margin-bottom: -3px;
           color: #fff;
@@ -461,7 +469,7 @@ DEP does not play a part in the laptop imaging process until we get to Setup Ass
 
 !!! tip No Configuration Profile Pane (DEP) during Setup Assistant
     + If you get to after the Network setup and there isn't a Configuration Profile (DEP) pane and just the Data & Privacy pane, go all the way back to the beginning of Setup Assistant and try again, including Network again (act as if you've never gone through Setup Assistant at this point). This most of the time will force the laptop to check for DEP again, and assuming it is actually scoped to the PreStage Enrollment, it will show the Configuration Profile (DEP) pane. 
-    + If you keep trying and still can not see the Configuration Profiles pane, you will have to reimage the device. See Quick Imaging for more info on doing this.
+    + If you keep trying and still can not see the Configuration Profiles pane, you will have to reimage the device. See [Quick Imaging](#toc7.1) for more info on doing this.
 
 Naming
 =================
@@ -604,7 +612,7 @@ The general process behind a policy cascade is the following:
 
 ### Smart Groups
 
-One of the most important parts of this process is having the Smart Groups correctly setup. This means that they should never allow a computer to go out of order, leave early, or enter the incorrect group. To group the computers correctly, we have two different major differentiators, the DEP Enrollment Scope and the Imaging Step Extension Attribute. The first being a imaging process differentiator and the second being a step seperator. For more information on how the Imaging Step Extension Attribute works, see the section below.
+One of the most important parts of this process is having the Smart Groups correctly setup. This means that they should never allow a computer to go out of order, leave early, or enter the incorrect group. To group the computers correctly, we have two different major differentiators, the DEP Enrollment Scope and the Imaging Step Extension Attribute. The first being a imaging process differentiator and the second being a step seperator. For more information on how the Imaging Step Extension Attribute works, see the section [below](#toc7.2.2).
 
 The following below is an example of what the criteria of a few cascaded smart groups would look like:
 
@@ -741,5 +749,41 @@ All finishing policies are scoped to the **AJH - MacBook Airs (i.3)** smart grou
 
 Known Issues
 =================
+
+(###) No Confirm Dialog for non-lab Naming Script
+
+Haven't gotten around to adding this.
+
+(###) Naming dialog appears more than once.
+
+This is the weirdest bug out of all of these. No real reason why this happens, and it seems to go away when you change a small part of the policy.
+
+(###) Chrome fails to install (policy fails)
+
+This has to do with the curl command timing out after 5 minutes. This could happen either because too many devices are downloading Chrome at once, causing them all to slow down, or that when the Wireless profile is installed, the curl command fails to restart the download. Besides adding a whole lot of checking to the script, the only solution is to separate Chrome from the profiles and give it its own Smart Group. This is overly complicated for just Google Chrome, so I have not done it yet. For the time being, just flush the log and run `sudo jamf policy` in terminal to fix this.
+
+(###) DEP Connection Errors in JSS
+
+You might be able to ignore this. I have not found a real reason for these, nor can I find a solution for them. I'd recommend calling JAMF about these.
+
+(###) Device fails to Assign to PreStage
+
+If a device continues to fail to assign to a PreStage, try unassigning the device from [Apple School](https://school.apple.com) and re-assign it:
+    1. Log into [Apple School](https://school.apple.com) using at least a Site Manager account. Go to Device Assignments
+    2. Enter the serial number for the device into the 1st field then select unassign devices in the drop down box in the 2nd field.
+    3. In JSS go to Settings > Device Enrollment Program > [Name of Program] > Devices and hit refresh.
+    4. Double check that the Computer does not exist in the list when you search by S/N
+    5. Go back into [Apple School](https://school.apple.com) and make sure the same S/N is in the 1st field, then select Assign to Server in the dropdown. Select https://jss.amherstk12.org for the server.
+    6. In JSS, continually refresh until you see the device again. Try reassigning it, it should work now.
+
+(###) A policy is running before another and causing an issue
+
+This is an inherent limitation with JSS. You can not mandate an order for policies from the same smart group. Because of this, the only way to have a policy to run before another is to separate them into different smart groups. This is what the policy cascading is for. If a policy is important enough to where it must be run before another policy, make another stage in the Policy Cascading. See the [section on this](#toc7.2) for more information.
+
+(###) No Configuration Profile Pane (DEP) during Setup Assistant
+
++ If you get to after the Network setup and there isn't a Configuration Profile (DEP) pane and just the Data & Privacy pane, go all the way back to the beginning of Setup Assistant and try again, including Network again (act as if you've never gone through Setup Assistant at this point). This most of the time will force the laptop to check for DEP again, and assuming it is actually scoped to the PreStage Enrollment, it will show the Configuration Profile (DEP) pane. 
++ If you keep trying and still can not see the Configuration Profiles pane, you will have to reimage the device. See [Quick Imaging](#toc7.1) for more info on doing this.
+
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js"></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" type="text/javascript"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

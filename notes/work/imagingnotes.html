@@ -30,6 +30,10 @@
           color: rgb(221, 221, 221);
       }
 
+      .md code {
+          white-space: unset;
+      }
+
       .md .longTOC a {
           font-family: Roboto;
       }
@@ -187,14 +191,14 @@
         color:#fff;
       }
 
-      .line {
+      \*.line {
          margin-left: 34px;
          margin-top: -5px;
          width: 180px;
          height: 1px;
          display: inline-block;
-         background: linear-gradient(to right, rgba(0, 0, 0, 0), rgb(238, 238, 238) 75%, rgb(238, 238, 238) 100%);
-      }
+         background: #fff;
+      }*\
 
       .md svg.diagram {
           stroke: #fff;
@@ -412,7 +416,6 @@ Department: Anything
 Make MDM Profile Mandatory: No
 Allow MDM Profile Removal: Yes
 Setup Assistant: All Selected
-
 ~~~~~~~~~~~~~~~~~
 
 **Account Settings**

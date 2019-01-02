@@ -191,14 +191,14 @@
         color:#fff;
       }
 
-      \*.line {
+      /*.line {
          margin-left: 34px;
          margin-top: -5px;
          width: 180px;
          height: 1px;
          display: inline-block;
          background: #fff;
-      }*\
+      }*/
 
       .md svg.diagram {
           stroke: #fff;

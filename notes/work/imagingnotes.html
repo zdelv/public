@@ -420,7 +420,7 @@ Setup Assistant: All Selected
 
 **Account Settings**
 
-~~~~~~~~~~~~~~~~~ 
+~~~~~~~~~~~~~~~~~ text
 Account Username: tech
 Create an additional admin account: No
 Local User Account Type: Skip Account Creation
@@ -682,7 +682,7 @@ Setup Assistant: All Selected
 
 **Account Settings**
 
-~~~~~~~~~~~~~~~~~ 
+~~~~~~~~~~~~~~~~~ text
 Account Username: tech
 Create an additional admin account: No
 Local User Account Type: Skip Account Creation
